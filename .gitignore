@@ -1,0 +1,54 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Local editor / CI scratch
+.github/
+.vscode/
+.env
+.env.*
+!.env.example
+
+# Local notes
+prompt.md
+problem_description.md
+check_output.txt
+
+# Large local artifacts (models, DBs, datasets, logs)
+demo_video_data/
+extracted_clip/
+logs/
+lancedb_backups/
+lancedb_data/
+test_lancedb_data/
+old_backups/
+FG-CLIP/
+fg-clip-base/
+SigLIP/
+twelvelabs/
+query_splitter/qwen-7b-local/
+models/
+third_party/
+data/
+
+# Experiment outputs
+experiments/data/
+experiments/figures/
+experiments/results/
+experiments/results_backup/
+experiments/extract_frame_centers.py
+eval/results/
+
+# Legacy / local-only eval modules
+eval_data/charades_vocaludf.py
+eval_data/charades.py
+tools/cluster2frames.py
+
+# Heavy notebooks with embedded media / machine-specific outputs
+*.ipynb
+eval/query_frames.ipynb
+sanity_checks/verify_clips.ipynb
+sanity_checks/verify_frames.ipynb
+tools/analyze_lancedb_dataset.ipynb
+tools/show_all_cluster_images.ipynb

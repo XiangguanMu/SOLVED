@@ -1,0 +1,9 @@
+numpy
+pandas
+torch
+transformers
+lancedb
+opencv-python
+tqdm
+Pillow
+pyarrow
