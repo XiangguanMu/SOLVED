@@ -1,7 +1,7 @@
 # SOLVED
 
 A prototype video retrieval system for compositional natural-language queries over long videos.
-SOLVED indexes clips and frames in LanceDB, decomposes complex queries into atomic sub-queries with an LLM, then ranks temporally consistent candidate sequences with InternVideo2 coarse retrieval and Qwen3-VL fine-grained scoring.
+SOLVED indexes clips and frames in LanceDB, decomposes complex queries into atomic sub-queries with an LLM, then ranks temporally consistent candidate sequences with InternVideo2 coarse retrieval, soft top-2 time filtering, and a video-aware cheap beam over Qwen3-VL scores.
 
 ## Setup Instructions
 
@@ -47,7 +47,7 @@ Defaults are centralized in `paths.py`. Any of the variables above can be overri
 |---|---|---|
 | InternVideo2 | Text / clip encoder | Point `INTERNVIDEO2_ROOT` at a local checkout |
 | FG-CLIP | Frame embeddings | Save under `models/fg-clip-base` or set `FGCLIP_MODEL_PATH` |
-| Qwen3-VL (FP8) | Soft-constraint scoring via `qwen3_bridge.py` | Set `QWEN3_VL_MODEL_PATH` |
+| Qwen3-VL (FP8) | Soft-constraint scoring via the persistent `qwen3_bridge.py` process | Set `QWEN3_VL_MODEL_PATH`; its Python environment must provide SGLang |
 | Qwen query splitter | Offline query decomposition | Set `QUERY_SPLITTER_MODEL_PATH` |
 
 ## Prepare Data
@@ -112,9 +112,16 @@ python sanity_checks/extract_video_clip.py \
 python query_lancedb.py \
   --db_path "$LANCEDB_PATH" \
   --qwen3_model_path "$QWEN3_VL_MODEL_PATH" \
-  --model_path "$QUERY_SPLITTER_MODEL_PATH" \
-  --top_k 5
+  --model_path "$QUERY_SPLITTER_MODEL_PATH"
 ```
+
+The default production configuration is:
+
+- all 38 queries from `eval_data/<dataset>.py`
+- cached decompositions from `eval_data/splits/<dataset>.json`
+- coarse top-20 retrieval and soft top-2 non-decreasing time filtering
+- frame beam width 3 and video beam width 5
+- temporal penalty `0.01`, relaxation `200`, and VLM score bins of `0.1`
 
 Useful flags:
 
@@ -124,6 +131,13 @@ python query_lancedb.py --db_path "$LANCEDB_PATH" --query_index 0
 
 # Only run the first N queries
 python query_lancedb.py --db_path "$LANCEDB_PATH" --max_queries 2
+
+# Run an explicit half-open query range
+python query_lancedb.py --db_path "$LANCEDB_PATH" --query_start 8 --query_end 38
+
+# Disable score quantization or cheap beam for an ablation
+python query_lancedb.py --db_path "$LANCEDB_PATH" --score_quantum 0
+python query_lancedb.py --db_path "$LANCEDB_PATH" --video_beam_width 0
 
 # Build / drop a temporary IVF-PQ index around the run
 python query_lancedb.py --db_path "$LANCEDB_PATH" --build_index --drop_index_on_exit
@@ -146,13 +160,14 @@ Outputs are written under `experiments/results/<dataset>/`.
 SOLVED/
 ├── query_lancedb.py          # CLI entry: split queries + run retrieval
 ├── pipeline.py               # End-to-end ranking pipeline
-├── search.py                 # Indexed clip search + beam search
+├── cheap_beam.py             # Incremental scene-local frame/video beam
+├── search.py                 # Indexed clip search + time-order helpers
 ├── model_loader.py           # InternVideo2 loading helpers
 ├── build_lancedb_tables.py   # LanceDB table construction
 ├── paths.py                  # Path defaults (overridable via env)
 ├── qwen3_bridge.py           # Subprocess bridge for Qwen3-VL scoring
 ├── query_splitter/           # Offline LLM query decomposition
-├── eval_data/                # queries + ground_truth_segments
+├── eval_data/                # 38 queries/dataset + GT + split caches
 ├── eval/                     # Small retrieval / splitting tests
 ├── sanity_checks/            # Schema / consistency check scripts
 ├── tools/                    # Maintenance utilities
@@ -161,10 +176,14 @@ SOLVED/
 
 ## Eval Queries
 
-Hand-authored evaluation queries and segment-level ground truth live in:
+Each dataset has one directly importable module containing all 38 queries
+(the original 8 followed by 30 additions), scene-level GT, and segment-level GT:
 
 - `eval_data/lovr.py`
 - `eval_data/msrvtt.py`
 - `eval_data/videochapter.py`
 
-Ground truth is stored as `ground_truth_segments` (`video_id`, `frame_start`, `frame_end`) and consumed by `experiments/export_query_results.py` for IoU metrics.
+There is no separate `new_queries` package. Query decomposition caches live under
+`eval_data/splits/` and are validated against the module's query list before use.
+Ground truth is stored as `ground_truth_segments` (`video_id`, `frame_start`,
+`frame_end`) and consumed by `experiments/export_query_results.py` for IoU metrics.

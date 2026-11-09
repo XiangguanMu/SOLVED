@@ -1,165 +1,281 @@
-queries = [
-    "A man in a green T-shirt talking and gesturing on a professional microphone.",
-    "A man first measures one side of a door lying flat with a yellow tape measure, and then measures the other side, finally measures the bottom with a silver ruler.",
-    "Three people are chatting in a bedroom, then they come out of the room. Then the video switches to a outdoor scene.",
-    "On a clay tennis court, a coach is talking to the camera, then demonstrates a wrong backhand by moving his elbow.",
-    "Someone is showing the covers of two comics books, then opens one of them to present the content.",
-    "A black man is talking on a microphone to demonstrate a cellphone, then demontrates another cellphone.",
-    "A game character holding a sword is walking along a dark corridor and then encounters a monster.",
-    "A woman in a white t-shirt stands in a bright kitchen with a stand mixer and baking ingredients in front of her, talking to the camera."
-]
+"""Original 8 queries followed by the 30 new queries."""
 
+queries = ['A man in a green T-shirt talking and gesturing on a professional microphone.',
+ 'A man first measures one side of a door lying flat with a yellow tape measure, and then measures '
+ 'the other side, finally measures the bottom with a silver ruler.',
+ 'Three people are chatting in a bedroom, then they come out of the room. Then the video switches '
+ 'to a outdoor scene.',
+ 'On a clay tennis court, a coach is talking to the camera, then demonstrates a wrong backhand by '
+ 'moving his elbow.',
+ 'Someone is showing the covers of two comics books, then opens one of them to present the '
+ 'content.',
+ 'A black man is talking on a microphone to demonstrate a cellphone, then demontrates another '
+ 'cellphone.',
+ 'A game character holding a sword is walking along a dark corridor and then encounters a monster.',
+ 'A woman in a white t-shirt stands in a bright kitchen with a stand mixer and baking ingredients '
+ 'in front of her, talking to the camera.',
+ 'A woman in a blue top talks and gestures to the camera, then looks down at a phone.',
+ 'A man in a plaid shirt talks and gestures to the camera as a nameplate reading Andy TechSmith '
+ 'appears, then the video switches to a solid yellow screen.',
+ 'A man in a dark shirt sits at a white desk with three monitors showing mountain scenery, talking '
+ 'and gesturing with his hands.',
+ 'A man with a beard and a blue cap talks to the camera while gesturing with his hands, with a '
+ 'computer screen displaying audio equipment behind him.',
+ 'A person plays an acoustic guitar with their left hand forming chords on the fretboard while '
+ 'their right hand strums, as indicated by on-screen chord diagrams and progression text.',
+ 'A man in scrubs sits on a table, lifts a black dumbbell and talks while demonstrating the '
+ 'movement, then switches to a blue dumbbell.',
+ 'A man with a beard and glasses, wearing a blue shirt, talks to the camera while gesturing with '
+ 'his hands, with yellow text reading Parameterized curves at the bottom of the screen.',
+ 'A black screen with a peach-heart logo and the text PEACHES SKINCARE, then a woman in a black '
+ 'tank top appears and speaks.',
+ 'A woman with dark hair and red lipstick speaks to the camera in front of a microphone.',
+ 'In front of a green wall, a woman holds up two books while white text reading "*nope- $13 at '
+ 'time of filming" appears on the screen.',
+ 'A man in a maroon shirt talks and gestures while seated at a keyboard in a green-lit room, then '
+ 'the video switches to a person using a green spreader outdoors.',
+ 'A person in a swimsuit walks with a green inflatable tube then the video switches to the person '
+ 'riding the tube down a water slide and finally floating in a pool with other people in tubes.',
+ 'A person in a red shirt plays a guitar while chord names and the text Phrase 4 are displayed on '
+ 'screen.',
+ 'A man in a blue shirt talks and gestures while seated at a desk with a computer monitor '
+ 'displaying Google Web Stories, and a phone screen showing a webpage appears in the frame.',
+ 'A woman and a man sit side by side in a room with a bookshelf behind them, both looking at the '
+ 'camera; the woman blinks and closes her eyes briefly then opens them again, while the man '
+ 'speaks.',
+ 'A young girl in a red-and-white checkered dress stands in front of American flags.',
+ 'A man wearing a cap sits in a chair and talks to the camera, then holds up a rifle to '
+ 'demonstrate it, then the video switches to a scene of a person shooting at a range.',
+ 'Cards show C major and D major chords with highlighted yellow keys, under the headings All White '
+ 'Keys C F G and White Black White D E A, then hands play on a full keyboard beneath the same '
+ 'headings.',
+ 'A woman with curly hair wearing a dark tank top talks to the camera while seated, then the video '
+ 'switches to a screen displaying text about choosing MyWW color plans, then the video switches '
+ 'back to the woman who continues talking.',
+ 'A man at a desk talks into a microphone, with cameras on the table, then the video switches to a '
+ 'photo of a camera, then cuts back to the man talking, and a warning text overlay reading '
+ '"WARNING: THIS IS JUST MY GUESS" appears.',
+ 'A man with glasses and a beard speaks to the camera, then the video switches to a backpack being '
+ 'unzipped, then a laptop is taken out of the backpack, then the person opens the laptop and '
+ "presses the keyboard, and a title card for 'Valid Sudoku' appears.",
+ 'A hand presses a French press next to a wine bottle, then pours coffee into a white mug labeled '
+ 'Wifey.',
+ 'In an animated scene, Minions sit in a ride vehicle, then the video switches to a roller coaster '
+ 'ride through a balloon-filled environment, then shows a colorful amusement park and an indoor '
+ 'street set.',
+ 'A woman in a pool holds a blue cup above the water, then the video switches to a person '
+ 'swimming, then the video switches to a woman smiling and talking while a man listens in a '
+ 'picture-in-picture window.',
+ 'A hand displays decorated nails, then the video switches to nail tips being applied, then a lamp '
+ 'cures the applied tips, and the cured nails are shown.',
+ 'On a blackboard, a hand draws a sun, then draws a watch to the left, then erases everything, and '
+ 'then draws a telescope.',
+ 'The video shows a list of regions and prices, then switches to a black screen asking what '
+ 'deposit is needed for Help to Buy, then switches to a man with a beard sitting on a blue couch '
+ 'and speaking to the camera.',
+ "The video shows a tour of a yacht's interior, starting with a view of the bedroom and shower, "
+ 'then the video switches to a close-up of the bathroom, then the video switches to the bedroom '
+ 'with a TV, then the video switches back to the bathroom, then the video switches to a man '
+ 'climbing stairs.',
+ 'The video shows a fitness room with motivational neon signs, then switches to an outdoor rooftop '
+ 'park, then finally switches to a man playing a pinball-style arcade game.',
+ 'The video shows a graphic with a map of Florida and logos for the Tampa Bay Buccaneers and Busch '
+ 'Gardens, then adds the text Pewter Pirate or Creamsicle Crusher, then shows a roller coaster '
+ 'ride, then overlays an NFL logo on a coaster photo with a Who Dat Coaster graphic.']
 
-ground_truth_segments = {
-    1: [
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 12579,
-            "frame_end": 15014,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 15015,
-            "frame_end": 15127,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 15128,
-            "frame_end": 16815,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 3507,
-            "frame_end": 3565,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 4335,
-            "frame_end": 4475,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 4646,
-            "frame_end": 4789,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 5344,
-            "frame_end": 5892,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 6069,
-            "frame_end": 6635,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 6972,
-            "frame_end": 7773,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 7937,
-            "frame_end": 9067,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 9147,
-            "frame_end": 9364,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 9611,
-            "frame_end": 9783,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 9872,
-            "frame_end": 10243,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 10398,
-            "frame_end": 10812,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 11081,
-            "frame_end": 11363,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 11418,
-            "frame_end": 11825,
-        },
-        {
-            "video_id": "-14K-LPy8i0",
-            "frame_start": 12029,
-            "frame_end": 12578
-        }
-    ],
-    2: [
-        {
-            "video_id": "-2kpq-EkG1s",
-            "frame_start": 2165,
-            "frame_end": 3414,
-        }
-    ],
-    3: [
-        {
-            "video_id": "h4Uaqkxmfss",
-            "frame_start": 5486,
-            "frame_end": 6255,
-        }
-    ],
-    4: [
-        {
-            "video_id": "hNmLeq2v4qw",
-            "frame_start": 1651,
-            "frame_end": 2000,
-        }
-    ],
-    5: [
-        {
-            "video_id": "vDboiUSTS4M",
-            "frame_start": 4847,
-            "frame_end": 5928,
-        }
-    ],
-    6: [
-        {
-            "video_id": "pbMry2l73qs",
-            "frame_start": 105,
-            "frame_end": 209,
-        },
-        {
-            "video_id": "pbMry2l73qs",
-            "frame_start": 0,
-            "frame_end": 209,
-        }
-    ],
-    7: [
-        {
-            "video_id": "sf6wuP7KPE4",
-            "frame_start": 8666,
-            "frame_end": 9060,
-        },
-        {
-            "video_id": "sf6wuP7KPE4",
-            "frame_start": 30396,
-            "frame_end": 30614,
-        }
-    ],
-    8: [
-        {
-            "video_id": "2VGI81bF6ZY",
-            "frame_start": 691,
-            "frame_end": 1390,
-        },
-        {
-            "video_id": "2VGI81bF6ZY",
-            "frame_start": 235,
-            "frame_end": 690,
-        }
-    ],
-}
+ground_truth_scene_names = ['-14K-LPy8i0-Scene-002.mp4',
+ '-2kpq-EkG1s-Scene-004.mp4',
+ 'h4Uaqkxmfss-Scene-004.mp4',
+ 'hNmLeq2v4qw-Scene-005.mp4',
+ 'vDboiUSTS4M-Scene-004.mp4',
+ 'pbMry2l73qs-Scene-001.mp4',
+ 'sf6wuP7KPE4-Scene-004.mp4',
+ '2VGI81bF6ZY-Scene-002.mp4',
+ ['WWJ07FrzB-w-Scene-004', 'WWJ07FrzB-w-Scene-005'],
+ ['QBcR1Ln2GbQ-Scene-001'],
+ ['ZJ6dVVobjaI-Scene-009',
+  'ZJ6dVVobjaI-Scene-008',
+  'ZJ6dVVobjaI-Scene-010',
+  'ZJ6dVVobjaI-Scene-005',
+  'ZJ6dVVobjaI-Scene-004',
+  'ZJ6dVVobjaI-Scene-007',
+  'ZJ6dVVobjaI-Scene-002'],
+ ['jKUYFmSn5Eo-Scene-007', 'jKUYFmSn5Eo-Scene-002', 'jKUYFmSn5Eo-Scene-008'],
+ ['FyJJ7n--GhQ-Scene-003', 'FyJJ7n--GhQ-Scene-004'],
+ ['J7UQhirvUPc-Scene-002'],
+ ['S1Pg-NxBE14-Scene-001'],
+ ['1TPo7kd4V3Y-Scene-001', '1TPo7kd4V3Y-Scene-002'],
+ ['QSJ0xfkz0Ec-Scene-001',
+  'QSJ0xfkz0Ec-Scene-002',
+  'QSJ0xfkz0Ec-Scene-013',
+  'QSJ0xfkz0Ec-Scene-014'],
+ ['cY2snq2GsAU-Scene-002'],
+ ['L9SlfuRjEus-Scene-002'],
+ ['uOjL75ClPjw-Scene-004'],
+ ['uC0YuZ0Q1l4-Scene-012',
+  'uC0YuZ0Q1l4-Scene-013',
+  'uC0YuZ0Q1l4-Scene-014',
+  'uC0YuZ0Q1l4-Scene-015'],
+ ['qfLwCyLSBAk-Scene-002', 'qfLwCyLSBAk-Scene-004'],
+ ['gLw5hSXvuCk-Scene-002',
+  'gLw5hSXvuCk-Scene-006',
+  'gLw5hSXvuCk-Scene-007',
+  'gLw5hSXvuCk-Scene-005',
+  'gLw5hSXvuCk-Scene-010'],
+ ['ajBP9ty3DQ4-Scene-001', 'ajBP9ty3DQ4-Scene-010'],
+ ['UZvDhHCsK_w-Scene-003', 'UZvDhHCsK_w-Scene-004'],
+ ['06pyLmYs-1g-Scene-004'],
+ ['8FD8TaWRtyo-Scene-002'],
+ ['D0_uSnn0yIA-Scene-004'],
+ ['oFTyy9BhYUI-Scene-001'],
+ ['zWUTyNOwFf8-Scene-014'],
+ ['TvioJK5M36o-Scene-005'],
+ ['TMVTZRVZb4E-Scene-001'],
+ ['kKxAD6BiS9g-Scene-001'],
+ ['lusvZHIaM3o-Scene-004'],
+ ['IhHkToyloO0-Scene-006'],
+ ['MzMkOgJt6nI-Scene-009', 'MzMkOgJt6nI-Scene-008'],
+ ['9vrVzjFpxko-Scene-003'],
+ ['zydafSVkZ4Y-Scene-007']]
+
+video_ids = ['-14K-LPy8i0',
+ '-2kpq-EkG1s',
+ 'h4Uaqkxmfss',
+ 'hNmLeq2v4qw',
+ 'vDboiUSTS4M',
+ 'pbMry2l73qs',
+ 'sf6wuP7KPE4',
+ '2VGI81bF6ZY',
+ 'WWJ07FrzB-w',
+ 'QBcR1Ln2GbQ',
+ 'ZJ6dVVobjaI',
+ 'jKUYFmSn5Eo',
+ 'FyJJ7n--GhQ',
+ 'J7UQhirvUPc',
+ 'S1Pg-NxBE14',
+ '1TPo7kd4V3Y',
+ 'QSJ0xfkz0Ec',
+ 'cY2snq2GsAU',
+ 'L9SlfuRjEus',
+ 'uOjL75ClPjw',
+ 'uC0YuZ0Q1l4',
+ 'qfLwCyLSBAk',
+ 'gLw5hSXvuCk',
+ 'ajBP9ty3DQ4',
+ 'UZvDhHCsK_w',
+ '06pyLmYs-1g',
+ '8FD8TaWRtyo',
+ 'D0_uSnn0yIA',
+ 'oFTyy9BhYUI',
+ 'zWUTyNOwFf8',
+ 'TvioJK5M36o',
+ 'TMVTZRVZb4E',
+ 'kKxAD6BiS9g',
+ 'lusvZHIaM3o',
+ 'IhHkToyloO0',
+ 'MzMkOgJt6nI',
+ '9vrVzjFpxko',
+ 'zydafSVkZ4Y']
+
+ground_truth_segments = {1: [{'video_id': '-14K-LPy8i0', 'frame_start': 12579, 'frame_end': 15014},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 15015, 'frame_end': 15127},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 15128, 'frame_end': 16815},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 3507, 'frame_end': 3565},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 4335, 'frame_end': 4475},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 4646, 'frame_end': 4789},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 5344, 'frame_end': 5892},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 6069, 'frame_end': 6635},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 6972, 'frame_end': 7773},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 7937, 'frame_end': 9067},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 9147, 'frame_end': 9364},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 9611, 'frame_end': 9783},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 9872, 'frame_end': 10243},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 10398, 'frame_end': 10812},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 11081, 'frame_end': 11363},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 11418, 'frame_end': 11825},
+     {'video_id': '-14K-LPy8i0', 'frame_start': 12029, 'frame_end': 12578}],
+ 2: [{'video_id': '-2kpq-EkG1s', 'frame_start': 2165, 'frame_end': 3414}],
+ 3: [{'video_id': 'h4Uaqkxmfss', 'frame_start': 5486, 'frame_end': 6255}],
+ 4: [{'video_id': 'hNmLeq2v4qw', 'frame_start': 1651, 'frame_end': 2000}],
+ 5: [{'video_id': 'vDboiUSTS4M', 'frame_start': 4847, 'frame_end': 5928}],
+ 6: [{'video_id': 'pbMry2l73qs', 'frame_start': 105, 'frame_end': 209},
+     {'video_id': 'pbMry2l73qs', 'frame_start': 0, 'frame_end': 209}],
+ 7: [{'video_id': 'sf6wuP7KPE4', 'frame_start': 8666, 'frame_end': 9060},
+     {'video_id': 'sf6wuP7KPE4', 'frame_start': 30396, 'frame_end': 30614}],
+ 8: [{'video_id': '2VGI81bF6ZY', 'frame_start': 691, 'frame_end': 1390},
+     {'video_id': '2VGI81bF6ZY', 'frame_start': 235, 'frame_end': 690}],
+ 9: [{'video_id': 'WWJ07FrzB-w', 'frame_start': 5335, 'frame_end': 6000},
+     {'video_id': 'WWJ07FrzB-w', 'frame_start': 6289, 'frame_end': 9467}],
+ 10: [{'video_id': 'QBcR1Ln2GbQ', 'frame_start': 0, 'frame_end': 455}],
+ 11: [{'video_id': 'ZJ6dVVobjaI', 'frame_start': 8497, 'frame_end': 9019},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 7974, 'frame_end': 8081},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 9020, 'frame_end': 9210},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 5271, 'frame_end': 5780},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 3977, 'frame_end': 4243},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 7360, 'frame_end': 7608},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 871, 'frame_end': 1041},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 1042, 'frame_end': 1172},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 1173, 'frame_end': 1944},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 871, 'frame_end': 1172},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 1042, 'frame_end': 1944},
+      {'video_id': 'ZJ6dVVobjaI', 'frame_start': 871, 'frame_end': 1944}],
+ 12: [{'video_id': 'jKUYFmSn5Eo', 'frame_start': 14254, 'frame_end': 16982},
+      {'video_id': 'jKUYFmSn5Eo', 'frame_start': 13742, 'frame_end': 13799},
+      {'video_id': 'jKUYFmSn5Eo', 'frame_start': 265, 'frame_end': 281},
+      {'video_id': 'jKUYFmSn5Eo', 'frame_start': 282, 'frame_end': 1089},
+      {'video_id': 'jKUYFmSn5Eo', 'frame_start': 265, 'frame_end': 1089},
+      {'video_id': 'jKUYFmSn5Eo', 'frame_start': 16983, 'frame_end': 17353}],
+ 13: [{'video_id': 'FyJJ7n--GhQ', 'frame_start': 4740, 'frame_end': 5928},
+      {'video_id': 'FyJJ7n--GhQ', 'frame_start': 5929, 'frame_end': 9466}],
+ 14: [{'video_id': 'J7UQhirvUPc', 'frame_start': 2160, 'frame_end': 3479}],
+ 15: [{'video_id': 'S1Pg-NxBE14', 'frame_start': 0, 'frame_end': 1049}],
+ 16: [{'video_id': '1TPo7kd4V3Y', 'frame_start': 195, 'frame_end': 440}],
+ 17: [{'video_id': 'QSJ0xfkz0Ec', 'frame_start': 0, 'frame_end': 3360},
+      {'video_id': 'QSJ0xfkz0Ec', 'frame_start': 3361, 'frame_end': 5281},
+      {'video_id': 'QSJ0xfkz0Ec', 'frame_start': 19289, 'frame_end': 19440},
+      {'video_id': 'QSJ0xfkz0Ec', 'frame_start': 19364, 'frame_end': 21942},
+      {'video_id': 'QSJ0xfkz0Ec', 'frame_start': 21943, 'frame_end': 22628}],
+ 18: [{'video_id': 'cY2snq2GsAU', 'frame_start': 2594, 'frame_end': 2662}],
+ 19: [{'video_id': 'L9SlfuRjEus', 'frame_start': 2495, 'frame_end': 2814}],
+ 20: [{'video_id': 'uOjL75ClPjw', 'frame_start': 5528, 'frame_end': 7690}],
+ 21: [{'video_id': 'uC0YuZ0Q1l4', 'frame_start': 22271, 'frame_end': 22842},
+      {'video_id': 'uC0YuZ0Q1l4', 'frame_start': 22843, 'frame_end': 23302},
+      {'video_id': 'uC0YuZ0Q1l4', 'frame_start': 23303, 'frame_end': 23703},
+      {'video_id': 'uC0YuZ0Q1l4', 'frame_start': 23704, 'frame_end': 24843}],
+ 22: [{'video_id': 'qfLwCyLSBAk', 'frame_start': 1274, 'frame_end': 1496},
+      {'video_id': 'qfLwCyLSBAk', 'frame_start': 4771, 'frame_end': 5091}],
+ 23: [{'video_id': 'gLw5hSXvuCk', 'frame_start': 1051, 'frame_end': 4552},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 9315, 'frame_end': 10375},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 10376, 'frame_end': 10644},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 12469, 'frame_end': 12620},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 12621, 'frame_end': 12696},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 12469, 'frame_end': 12696},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 12469, 'frame_end': 13109},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 8444, 'frame_end': 8502},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 8503, 'frame_end': 8623},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 8444, 'frame_end': 8623},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 8684, 'frame_end': 9314},
+      {'video_id': 'gLw5hSXvuCk', 'frame_start': 8444, 'frame_end': 9314}],
+ 24: [{'video_id': 'ajBP9ty3DQ4', 'frame_start': 339, 'frame_end': 502},
+      {'video_id': 'ajBP9ty3DQ4', 'frame_start': 8626, 'frame_end': 8664},
+      {'video_id': 'ajBP9ty3DQ4', 'frame_start': 8665, 'frame_end': 8984}],
+ 25: [{'video_id': 'UZvDhHCsK_w', 'frame_start': 11239, 'frame_end': 15776}],
+ 26: [{'video_id': '06pyLmYs-1g', 'frame_start': 3792, 'frame_end': 4332}],
+ 27: [{'video_id': '8FD8TaWRtyo', 'frame_start': 2011, 'frame_end': 4441}],
+ 28: [{'video_id': 'D0_uSnn0yIA', 'frame_start': 6637, 'frame_end': 7154}],
+ 29: [{'video_id': 'oFTyy9BhYUI', 'frame_start': 0, 'frame_end': 577}],
+ 30: [{'video_id': 'zWUTyNOwFf8', 'frame_start': 24727, 'frame_end': 25265}],
+ 31: [{'video_id': 'TvioJK5M36o', 'frame_start': 11597, 'frame_end': 11933},
+      {'video_id': 'TvioJK5M36o', 'frame_start': 11597, 'frame_end': 11679},
+      {'video_id': 'TvioJK5M36o', 'frame_start': 11597, 'frame_end': 11766},
+      {'video_id': 'TvioJK5M36o', 'frame_start': 11597, 'frame_end': 11819},
+      {'video_id': 'TvioJK5M36o', 'frame_start': 11597, 'frame_end': 11876}],
+ 32: [{'video_id': 'TMVTZRVZb4E', 'frame_start': 46, 'frame_end': 2782},
+      {'video_id': 'TMVTZRVZb4E', 'frame_start': 46, 'frame_end': 503},
+      {'video_id': 'TMVTZRVZb4E', 'frame_start': 46, 'frame_end': 2463}],
+ 33: [{'video_id': 'kKxAD6BiS9g', 'frame_start': 0, 'frame_end': 720}],
+ 34: [{'video_id': 'lusvZHIaM3o', 'frame_start': 5251, 'frame_end': 5656}],
+ 35: [{'video_id': 'IhHkToyloO0', 'frame_start': 3128, 'frame_end': 3524}],
+ 36: [{'video_id': 'MzMkOgJt6nI', 'frame_start': 6442, 'frame_end': 7682}],
+ 37: [{'video_id': '9vrVzjFpxko', 'frame_start': 9580, 'frame_end': 9975}],
+ 38: [{'video_id': 'zydafSVkZ4Y', 'frame_start': 8402, 'frame_end': 10942}]}

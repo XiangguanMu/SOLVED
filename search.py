@@ -13,7 +13,7 @@ def extract_chunk_t(clip_id: str):
 
 
 def time_order_ok(entries):
-    """校验各时间步的 best_t 是否满足严格递增的时序约束。"""
+    """校验各时间步的 best_t 是否满足非降序的时序约束。"""
     if not entries or any(e.get("best_t") is None for e in entries):
         return False
     step_to_ts = {}
@@ -26,6 +26,34 @@ def time_order_ok(entries):
         if prev_max_t is not None and cur_min_t < prev_max_t:
             return False
         prev_max_t = cur_max_t
+    return True
+
+
+def top2_time_order_ok(time_options):
+    """每个子查询给出至多两个时间下标，存在一条非降序选择则通过。
+
+    ``time_options`` 与子查询顺序一致。某一项为空表示该子查询没有可用时间下标。
+    """
+    if not time_options:
+        return False
+    reachable = None
+    for options in time_options:
+        choices = []
+        for t in options:
+            if t is None:
+                continue
+            value = float(t)
+            if value not in choices:
+                choices.append(value)
+        if not choices:
+            return False
+        if reachable is None:
+            reachable = set(choices)
+            continue
+        nxt = {t for t in choices if any(t >= prev for prev in reachable)}
+        if not nxt:
+            return False
+        reachable = nxt
     return True
 
 

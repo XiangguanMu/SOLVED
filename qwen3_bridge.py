@@ -13,14 +13,7 @@ from sglang import Engine
 from transformers import AutoProcessor
 
 
-def run_inference(input_path: str, output_path: str):
-    """Load model via SGLang, process all prompts in a native batch, write scores to output_path."""
-    with open(input_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    model_path = data["model_path"]
-    prompts_data = data["prompts"]  # list of {prompt, image_path} or None
-
+def load_model(model_path: str):
     print(f"Loading Qwen3-VL model via SGLang from {model_path}...", file=sys.stderr)
 
     # Load processor for chat template
@@ -33,15 +26,18 @@ def run_inference(input_path: str, output_path: str):
         mem_fraction_static=0.3,
         disable_cuda_graph=True,
     )
+    return processor, llm
+
+
+def score_prompts(processor, llm, prompts_data):
+    """Score one prompt batch using an already loaded model."""
 
     scores = [0.0] * len(prompts_data)
     active_indices = [i for i, p in enumerate(prompts_data) if p is not None]
 
     if not active_indices:
         print("No active prompts to process.", file=sys.stderr)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump({"scores": scores}, f)
-        return
+        return scores
 
     print(
         f"SGLang Engine loaded. Batch processing {len(active_indices)} active prompts...",
@@ -116,12 +112,46 @@ def run_inference(input_path: str, output_path: str):
         print(f"Batch inference failed: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
 
+    return scores
+
+
+def run_inference(input_path: str, output_path: str):
+    """Load model, score a single JSON batch, and write its scores."""
+    with open(input_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    prompts_data = data["prompts"]
+    processor, llm = load_model(data["model_path"])
+    scores = score_prompts(processor, llm, prompts_data)
+
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump({"scores": scores}, f)
     print(f"Done. Wrote {len(scores)} scores to {output_path}", file=sys.stderr)
 
 
+def run_stream(model_path: str):
+    """Keep one model resident and process newline-delimited prompt batches."""
+    processor, llm = load_model(model_path)
+    print("SGLang Engine ready for streaming batches.", file=sys.stderr)
+    for raw_line in sys.stdin:
+        if not raw_line.strip():
+            continue
+        request = json.loads(raw_line)
+        if request.get("command") == "close":
+            break
+        request_id = request.get("request_id")
+        scores = score_prompts(processor, llm, request.get("prompts", []))
+        response = {"request_id": request_id, "scores": scores}
+        print(
+            "BRIDGE_RESULT\t" + json.dumps(response, ensure_ascii=False),
+            flush=True,
+        )
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) == 3 and sys.argv[1] == "--stream":
+        run_stream(sys.argv[2])
+    elif len(sys.argv) == 3:
+        run_inference(sys.argv[1], sys.argv[2])
+    else:
         sys.exit(1)
-    run_inference(sys.argv[1], sys.argv[2])

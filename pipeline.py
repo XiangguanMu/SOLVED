@@ -8,11 +8,18 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from search import (
     extract_chunk_t,
     find_candidate_sequences,
     search_clips_indexed,
-    time_order_ok,
+    top2_time_order_ok,
 )
 from model_loader import query_to_embedding
 
@@ -119,7 +126,9 @@ def _append_query_candidate_log(log_path, payload):
     print(f"Saved query candidate debug log to: {log_path}")
 
 
-def fetch_candidate_scenes(query, intern_model, clips_tbl, nprobes, return_debug=False):
+def fetch_candidate_scenes(
+    query, intern_model, clips_tbl, nprobes, return_debug=False, coarse_limit=20
+):
     """对完整查询做粗检索，返回候选场景列表和 WHERE 子句。"""
     t0 = time.time()
     complex_query_embedding = query_to_embedding(intern_model, query)
@@ -131,12 +140,12 @@ def fetch_candidate_scenes(query, intern_model, clips_tbl, nprobes, return_debug
         .metric("cosine")
         .nprobes(nprobes)
         # .limit(100)
-        .limit(20)
+        .limit(coarse_limit)
         .to_pandas()
     )
     complex_search_time = time.time() - t1
     print(
-        f"[{complex_search_time:.4f}s] Fetched top 20 candidate clips using the original complex query."
+        f"[{complex_search_time:.4f}s] Fetched top {coarse_limit} candidate clips using the original complex query."
     )
 
     if df_candidates.empty:
@@ -162,7 +171,7 @@ def fetch_candidate_scenes(query, intern_model, clips_tbl, nprobes, return_debug
             where_clause,
             complex_embedding_time,
             complex_search_time,
-            _df_to_light_records(df_candidates, limit=20),
+            _df_to_light_records(df_candidates, limit=coarse_limit),
         )
     return candidate_scenes, where_clause, complex_embedding_time, complex_search_time
 
@@ -172,6 +181,8 @@ def _search_sub_queries(
     intern_model,
     clips_tbl,
     top_k,
+    print_gt_scores,
+    ground_truth,
     nprobes,
     where_clause,
     candidate_scenes,
@@ -276,6 +287,8 @@ def process_sub_queries(
     intern_model,
     clips_tbl,
     top_k,
+    print_gt_scores,
+    ground_truth,
     nprobes,
     where_clause,
     candidate_scenes,
@@ -286,6 +299,8 @@ def process_sub_queries(
         intern_model,
         clips_tbl,
         top_k,
+        print_gt_scores,
+        ground_truth,
         nprobes,
         where_clause,
         candidate_scenes,
@@ -355,19 +370,41 @@ def _enrich_candidates_with_frame_bounds(scene_candidates, frames_clusters_tbl):
             cand["frame_end"] = frame_end
 
 
+# 1 = 原始硬约束：每个子查询只留最高分时间块。2 = 软约束：前两名里存在不倒序组合即可。
+TIME_ORDER_TOPK = 2
+
+
+def _top2_time_options(row_s, row_t):
+    """取该子查询分数最高的若干个有效切片的时间下标。"""
+    pairs = sorted(
+        (
+            (float(score), time_idx)
+            for score, time_idx in zip(row_s, row_t)
+            if score is not None and float(score) != -1.0
+        ),
+        key=lambda item: item[0],
+        reverse=True,
+    )
+    options = []
+    for _, time_idx in pairs:
+        if time_idx not in options:
+            options.append(time_idx)
+        if len(options) == TIME_ORDER_TOPK:
+            break
+    return options
+
+
 def _filter_scenes_by_time_order(candidate_scenes, scene_subquery_results, time_steps):
-    """硬约束过滤：保留 Top-1 子查询结果满足时间顺序的场景。"""
+    """硬约束过滤：每个子查询取最高分的两个时间下标，存在非降序选择则保留该场景。"""
+    del time_steps  # 时间顺序由子查询排列本身决定，不再按 time_step 分组。
     valid = []
     for sc in candidate_scenes:
         if sc not in scene_subquery_results:
             continue
         S = scene_subquery_results[sc]["S"]
         T = scene_subquery_results[sc]["T"]
-        entries = [
-            {"time_step": time_steps[i], "best_t": T[i][0] if S[i][0] != -1.0 else None}
-            for i in range(len(S))
-        ]
-        if time_order_ok(entries):
+        options = [_top2_time_options(row_s, row_t) for row_s, row_t in zip(S, T)]
+        if top2_time_order_ok(options):
             valid.append(sc)
     return valid
 
@@ -465,6 +502,66 @@ def _collect_and_print_top_sequences(scene_candidates, time_steps, dedup_range_t
     return deduped
 
 
+def _normalize_vec(vec):
+    arr = np.asarray(vec, dtype=np.float32).reshape(-1)
+    norm = float(np.linalg.norm(arr))
+    if norm > 0:
+        arr = arr / norm
+    return arr
+
+
+def _load_frame_embeddings(table, clip_id, frame_ids):
+    clip_expr = _sql_literal(str(clip_id).replace(".mp4", ""))
+    frame_df = (
+        table.search()
+        .where(f"clip_id = {clip_expr}")
+        .select(["frame_id", "frame_embedding"])
+        .limit(2_000_000)
+        .to_pandas()
+    )
+    wanted = {int(frame_id) for frame_id in frame_ids}
+    embeddings = {}
+    if frame_df.empty:
+        return embeddings
+    for frame_id, embedding in zip(
+        frame_df["frame_id"].tolist(), frame_df["frame_embedding"].tolist()
+    ):
+        frame_id = int(frame_id)
+        if frame_id in wanted and frame_id not in embeddings:
+            embeddings[frame_id] = _normalize_vec(embedding)
+    return embeddings
+
+
+def _score_scenes_with_encoder(
+    scenes, scene_results, valid_clauses, text_embeddings, db, score_backend
+):
+    table_name = "frames_siglip" if score_backend == "siglip" else "frames"
+    embedding_table = db.open_table(table_name)
+    clause_vectors = []
+    for clause in valid_clauses:
+        vector = None if text_embeddings is None else text_embeddings.get(clause)
+        clause_vectors.append(None if vector is None else _normalize_vec(vector))
+    final_scores = []
+    scene_to_meta = {}
+    for scene_name in scenes:
+        if scene_name not in scene_results:
+            continue
+        frame_ids, _image_map = scene_results[scene_name]
+        embedding_map = _load_frame_embeddings(embedding_table, scene_name, frame_ids)
+        scene_to_meta[scene_name] = {
+            "cluster_ids": frame_ids,
+            "start_idx": len(final_scores),
+        }
+        for vector in clause_vectors:
+            for frame_id in frame_ids:
+                stored = embedding_map.get(int(frame_id))
+                if vector is None or stored is None:
+                    final_scores.append(0.0)
+                else:
+                    final_scores.append(float(np.dot(stored, vector)))
+    return final_scores, scene_to_meta
+
+
 def evaluate_and_rank_scenes(
     i,
     atomic_items,
@@ -476,6 +573,15 @@ def evaluate_and_rank_scenes(
     qwen3_python,
     top_k,
     db,
+    beam_width=3,
+    penalty_weight=0.01,
+    epsilon=200.0,
+    skip_time_filter=False,
+    score_all_frames=False,
+    score_backend="vlm",
+    text_embeddings=None,
+    video_beam_width=None,
+    persistent_vlm_bridge=None,
 ):
     import io
     import json
@@ -483,6 +589,31 @@ def evaluate_and_rank_scenes(
     import tempfile
     import os as _os
     from PIL import Image
+
+    if video_beam_width is not None:
+        from cheap_beam import evaluate_and_rank_scenes_cheap
+
+        return evaluate_and_rank_scenes_cheap(
+            i,
+            atomic_items,
+            candidate_scenes,
+            scene_subquery_results,
+            frames_tbl,
+            qwen3_model_path,
+            qwen3_bridge_script,
+            qwen3_python,
+            top_k,
+            db,
+            frame_beam_width=beam_width,
+            video_beam_width=video_beam_width,
+            penalty_weight=penalty_weight,
+            epsilon=epsilon,
+            skip_time_filter=skip_time_filter,
+            persistent_bridge=persistent_vlm_bridge,
+            score_all_frames=score_all_frames,
+            score_backend=score_backend,
+            text_embeddings=text_embeddings,
+        )
 
     print(f"\n[Intersection Summary (Soft Constraint)] for Query {i+1}")
     timing = {
@@ -511,16 +642,35 @@ def evaluate_and_rank_scenes(
         candidate_scenes, scene_subquery_results, time_steps
     )
     timing["hard_filter"] = time.time() - hard_filter_start
+    if TIME_ORDER_TOPK <= 1:
+        time_order_label = "Top-1 expected"
+    else:
+        time_order_label = "top-2 non-decreasing"
     print(
-        f"Candidates passing hard time order explicitly (Top-1 expected): {len(valid_scenes_hard)}"
+        f"Candidates passing hard time order ({time_order_label}): {len(valid_scenes_hard)}"
+    )
+    print(
+        f"Sequence matching: r={top_k} B={beam_width} "
+        f"lambda={penalty_weight} epsilon={epsilon} backend={score_backend}"
     )
     # ====================硬约束筛选=====================
 
     # ====================软约束筛选=====================
-    sc_list_to_search = valid_scenes_hard if valid_scenes_hard else candidate_scenes
-    if not valid_scenes_hard:
+    if skip_time_filter:
+        sc_list_to_search = list(candidate_scenes)
         print(
-            "Warning: strict hard filter failed to find any candidate, falling back to all candidate scenes for soft search."
+            "[Ablation] Skipping time-aware hard filter; "
+            f"passing all {len(sc_list_to_search)} coarse candidate scene(s) to scoring."
+        )
+    else:
+        sc_list_to_search = valid_scenes_hard if valid_scenes_hard else candidate_scenes
+        if not valid_scenes_hard:
+            print(
+                "Warning: strict hard filter failed to find any candidate, falling back to all candidate scenes for soft search."
+            )
+    if score_all_frames:
+        print(
+            "Ablation mode: no semantic bucketing — scoring ALL frames in each candidate scene."
         )
 
     if not valid_clauses or not sc_list_to_search:
@@ -552,6 +702,56 @@ def evaluate_and_rank_scenes(
         def _fetch_scene_data(sc_name):
             sc_clean = sc_name.replace(".mp4", "")
             clip_expr = _sql_literal(sc_clean)
+
+            if score_all_frames:
+                t0 = time.time()
+                try:
+                    frames_df = (
+                        frames_tbl.search()
+                        .where(f"clip_id = {clip_expr}")
+                        .select(["frame_id", "frame_image"])
+                        .limit(2_000_000)
+                        .to_pandas()
+                    )
+                except Exception as exc:
+                    print(f"Warning: frames query failed for {sc_clean}: {exc}")
+                    frames_df = pd.DataFrame()
+                frames_elapsed = time.time() - t0
+                if frames_df.empty or "frame_id" not in frames_df.columns:
+                    return sc_name, None, None, 0.0, frames_elapsed
+                frames_df = frames_df.drop_duplicates(subset=["frame_id"]).sort_values(
+                    "frame_id"
+                )
+                frame_ids = frames_df["frame_id"].tolist()
+                frame_image_map = dict(
+                    zip(frames_df["frame_id"], frames_df["frame_image"])
+                )
+                return sc_name, frame_ids, frame_image_map, 0.0, frames_elapsed
+
+            if text_embeddings is not None and score_backend != "vlm":
+                id_table = frame_cluster_reps_tbl or frames_clusters_tbl
+                id_column = (
+                    "cluster_frame_id"
+                    if frame_cluster_reps_tbl is not None
+                    else "cluster_frame_id"
+                )
+                t0 = time.time()
+                try:
+                    id_df = (
+                        id_table.search()
+                        .where(f"clip_id = {clip_expr}")
+                        .select([id_column])
+                        .limit(2_000_000)
+                        .to_pandas()
+                    )
+                except Exception as exc:
+                    print(f"Warning: cluster id query failed for {sc_clean}: {exc}")
+                    id_df = pd.DataFrame()
+                elapsed = time.time() - t0
+                if id_df.empty or id_column not in id_df.columns:
+                    return sc_name, None, None, elapsed, 0.0
+                frame_ids = id_df[id_column].drop_duplicates().tolist()
+                return sc_name, frame_ids, {}, elapsed, 0.0
 
             if frame_cluster_reps_tbl is not None:
                 t0 = time.time()
@@ -647,8 +847,22 @@ def evaluate_and_rank_scenes(
                         frame_image_map,
                     )
 
+        use_encoder = text_embeddings is not None and score_backend != "vlm"
+        if use_encoder:
+            encoder_final_scores, scene_to_meta = _score_scenes_with_encoder(
+                sc_list_to_search,
+                scene_results,
+                valid_clauses,
+                text_embeddings,
+                db,
+                score_backend,
+            )
+        else:
+            encoder_final_scores = None
+
         # Revert to simple loop: No filtering, no deduplication
-        for sc_name in sc_list_to_search:
+        prompt_scenes = [] if use_encoder else sc_list_to_search
+        for sc_name in prompt_scenes:
             if sc_name not in scene_results:
                 continue
             cluster_frame_ids, frame_image_map = scene_results[sc_name]
@@ -681,83 +895,97 @@ def evaluate_and_rank_scenes(
                     except Exception:
                         bridge_prompts.append(None)
 
-        print(f"Total prompts to score (All clusters): {len(bridge_prompts)}")
-        timing["prompt_build"] = time.time() - prompt_build_start
-
-        # Write input JSON for the bridge
-        bridge_input = {
-            "model_path": qwen3_model_path,
-            "prompts": bridge_prompts,
-        }
-
-        t0 = time.time()
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, prefix="qwen3_input_"
-        ) as f_in:
-            json.dump(bridge_input, f_in)
-            bridge_input_path = f_in.name
-        timing["bridge_input_write"] = time.time() - t0
-
-        bridge_output_path = bridge_input_path.replace("_input_", "_output_")
-
-        try:
-            # Free CUDA memory used by InternVideo2 before launching SGLang bridge
-            import torch
-
-            torch.cuda.empty_cache()
-            print("Cleared CUDA cache before bridge call.")
-
+        if use_encoder:
+            final_scores = encoder_final_scores
             print(
-                f"Calling Qwen3-VL bridge ({len(bridge_prompts)} prompts) via {qwen3_python}..."
+                f"Total prompts to score ({score_backend} cosine): {len(final_scores)}"
             )
+            timing["prompt_build"] = time.time() - prompt_build_start
+        else:
+            label = "All frames, no clustering" if score_all_frames else "All clusters"
+            print(f"Total prompts to score ({label}): {len(bridge_prompts)}")
+            timing["prompt_build"] = time.time() - prompt_build_start
+
+            # Write input JSON for the bridge
+            bridge_input = {
+                "model_path": qwen3_model_path,
+                "prompts": bridge_prompts,
+            }
+
             t0 = time.time()
-            result = subprocess.run(
-                [
-                    qwen3_python,
-                    qwen3_bridge_script,
-                    bridge_input_path,
-                    bridge_output_path,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=600,
-            )
-            timing["bridge_infer"] = time.time() - t0
-            if result.returncode != 0:
-                print(f"❌ Bridge subprocess failed (rc={result.returncode}):")
-                print("--- Bridge STDERR ---")
-                print(result.stderr)
-                print("--- Bridge STDOUT ---")
-                print(result.stdout)
-                print("---------------------")
-                final_scores = [0.0] * len(bridge_prompts)
-            else:
-                # NEW: Always print stderr to see DEBUG info
-                if result.stderr:
-                    print("--- Bridge Logs ---")
-                    print(result.stderr)
-                    print("-------------------")
-                t0 = time.time()
-                with open(bridge_output_path, "r", encoding="utf-8") as f:
-                    output_data = json.load(f)
-                timing["bridge_output_read"] = time.time() - t0
-                final_scores = output_data.get("scores", [0.0] * len(bridge_prompts))
-                if len(final_scores) < len(bridge_prompts):
-                    final_scores += [0.0] * (len(bridge_prompts) - len(final_scores))
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False, prefix="qwen3_input_"
+            ) as f_in:
+                json.dump(bridge_input, f_in)
+                bridge_input_path = f_in.name
+            timing["bridge_input_write"] = time.time() - t0
+
+            bridge_output_path = bridge_input_path.replace("_input_", "_output_")
+
+            try:
+                # Free CUDA memory used by InternVideo2 before launching SGLang bridge
+                import torch
+
+                torch.cuda.empty_cache()
+                print("Cleared CUDA cache before bridge call.")
+
                 print(
-                    f"Bridge returned {len(final_scores)} scores. First few: {final_scores[:5]}"
+                    f"Calling Qwen3-VL bridge ({len(bridge_prompts)} prompts) via {qwen3_python}..."
                 )
-        except subprocess.TimeoutExpired:
-            print("Bridge subprocess timed out after 600s.")
-            final_scores = [0.0] * len(bridge_prompts)
-        except Exception as e:
-            print(f"Bridge subprocess error: {e}")
-            final_scores = [0.0] * len(bridge_prompts)
-        finally:
-            # Clean up temp files
-            for p in (bridge_input_path, bridge_output_path):
-                if _os.path.exists(p):
-                    _os.unlink(p)
+                bridge_env = os.environ.copy()
+                driver_bin = os.path.dirname(sys.executable)
+                bridge_env["PATH"] = (
+                    driver_bin + os.pathsep + bridge_env.get("PATH", "")
+                )
+                t0 = time.time()
+                result = subprocess.run(
+                    [
+                        qwen3_python,
+                        qwen3_bridge_script,
+                        bridge_input_path,
+                        bridge_output_path,
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=7200 if score_all_frames else 600,
+                    env=bridge_env,
+                )
+                timing["bridge_infer"] = time.time() - t0
+                if result.returncode != 0:
+                    print(f"❌ Bridge subprocess failed (rc={result.returncode}):")
+                    print("--- Bridge STDERR ---")
+                    print(result.stderr)
+                    print("--- Bridge STDOUT ---")
+                    print(result.stdout)
+                    print("---------------------")
+                    final_scores = [0.0] * len(bridge_prompts)
+                else:
+                    # NEW: Always print stderr to see DEBUG info
+                    if result.stderr:
+                        print("--- Bridge Logs ---")
+                        print(result.stderr)
+                        print("-------------------")
+                    t0 = time.time()
+                    with open(bridge_output_path, "r", encoding="utf-8") as f:
+                        output_data = json.load(f)
+                    timing["bridge_output_read"] = time.time() - t0
+                    final_scores = output_data.get("scores", [0.0] * len(bridge_prompts))
+                    if len(final_scores) < len(bridge_prompts):
+                        final_scores += [0.0] * (len(bridge_prompts) - len(final_scores))
+                    print(
+                        f"Bridge returned {len(final_scores)} scores. First few: {final_scores[:5]}"
+                    )
+            except subprocess.TimeoutExpired:
+                print("Bridge subprocess timed out after 600s.")
+                final_scores = [0.0] * len(bridge_prompts)
+            except Exception as e:
+                print(f"Bridge subprocess error: {e}")
+                final_scores = [0.0] * len(bridge_prompts)
+            finally:
+                # Clean up temp files
+                for p in (bridge_input_path, bridge_output_path):
+                    if _os.path.exists(p):
+                        _os.unlink(p)
 
     candidate_build_start = time.time()
     # Build scene candidates from scores
@@ -790,12 +1018,31 @@ def evaluate_and_rank_scenes(
             T_new.append(row_t)
 
         candidates = find_candidate_sequences(
-            S_new, T_new, penalty_weight=0.01, top_k=3, epsilon=200
+            S_new,
+            T_new,
+            penalty_weight=penalty_weight,
+            top_k=beam_width,
+            epsilon=epsilon,
         )
         if candidates:
             scene_candidates[sc_name] = candidates
 
-    _enrich_candidates_with_frame_bounds(scene_candidates, frames_clusters_tbl)
+    if score_all_frames:
+        for _scene_name, candidates in scene_candidates.items():
+            for cand in candidates:
+                matched_ids = [
+                    int(step[1])
+                    for step in cand.get("sequence", [])
+                    if step[1] is not None
+                ]
+                if matched_ids:
+                    cand["frame_start"] = min(matched_ids)
+                    cand["frame_end"] = max(matched_ids)
+                else:
+                    cand["frame_start"] = None
+                    cand["frame_end"] = None
+    else:
+        _enrich_candidates_with_frame_bounds(scene_candidates, frames_clusters_tbl)
     all_sequences = _collect_and_print_top_sequences(scene_candidates, time_steps)
     timing["candidate_build"] = time.time() - candidate_build_start
 
@@ -812,11 +1059,23 @@ def process_query(
     qwen3_model_path,
     qwen3_bridge_script,
     qwen3_python,
+    ground_truth,
     nprobes,
     top_k,
+    print_gt_scores,
     db,
     candidate_log_path=None,
     query_split_time=0.0,
+    coarse_limit=20,
+    beam_width=3,
+    penalty_weight=0.01,
+    epsilon=200.0,
+    skip_time_filter=False,
+    score_all_frames=False,
+    score_backend="vlm",
+    text_embeddings=None,
+    video_beam_width=None,
+    persistent_vlm_bridge=None,
 ):
     """单条查询的端到端流程：粗检索 → 子查询对齐 → 序列排序。"""
     query_start_time = time.time()
@@ -837,7 +1096,9 @@ def process_query(
         complex_embedding_time,
         complex_search_time,
         coarse_top20_clips,
-    ) = fetch_candidate_scenes(query, intern_model, clips_tbl, nprobes, True)
+    ) = fetch_candidate_scenes(
+        query, intern_model, clips_tbl, nprobes, True, coarse_limit=coarse_limit
+    )
     if not candidate_scenes:
         _append_query_candidate_log(
             candidate_log_path,
@@ -845,9 +1106,13 @@ def process_query(
                 "query_index": i,
                 "query_number": i + 1,
                 "query": query,
+                "coarse_k": coarse_limit,
+                "candidate_scenes": [],
                 "coarse_top20_clips": coarse_top20_clips,
                 "hard_constraint_passed_scenes": [],
                 "hard_constraint_candidates": [],
+                "time_aware_filtering_ablated": skip_time_filter,
+                "scenes_sent_to_scoring": [],
             },
         )
         return []
@@ -862,6 +1127,8 @@ def process_query(
         intern_model,
         clips_tbl,
         top_k,
+        print_gt_scores,
+        ground_truth,
         nprobes,
         where_clause,
         candidate_scenes,
@@ -876,19 +1143,28 @@ def process_query(
             "query_index": i,
             "query_number": i + 1,
             "query": query,
+            "coarse_k": coarse_limit,
+            "n_unique_scenes": len(candidate_scenes),
+            "candidate_scenes": list(candidate_scenes),
             "coarse_top20_clips": coarse_top20_clips,
             "hard_constraint_passed_scenes": valid_scenes_hard,
             "hard_constraint_candidates": hard_candidates,
+            "time_aware_filtering_ablated": skip_time_filter,
+            "scenes_sent_to_scoring": (
+                list(candidate_scenes) if skip_time_filter else list(valid_scenes_hard)
+            ),
         },
     )
 
     intersection_start = time.time()
 
-    # Move InternVideo2 to CPU to free GPU memory for Qwen3-VL bridge
-    intern_model_cpu = intern_model.cpu()
     import torch as _torch
 
-    _torch.cuda.empty_cache()
+    moved_intern_to_cpu = persistent_vlm_bridge is None
+    if moved_intern_to_cpu:
+        # One-shot bridge mode needs the encoder memory while Qwen is loading.
+        intern_model.cpu()
+        _torch.cuda.empty_cache()
 
     all_sequences, intersection_timing = evaluate_and_rank_scenes(
         i,
@@ -901,11 +1177,21 @@ def process_query(
         qwen3_python,
         top_k,
         db,
+        beam_width=beam_width,
+        penalty_weight=penalty_weight,
+        epsilon=epsilon,
+        skip_time_filter=skip_time_filter,
+        score_all_frames=score_all_frames,
+        score_backend=score_backend,
+        text_embeddings=text_embeddings,
+        video_beam_width=video_beam_width,
+        persistent_vlm_bridge=persistent_vlm_bridge,
     )
 
-    # Move InternVideo2 back to GPU for next query
-    intern_model.cuda()
-    _torch.cuda.empty_cache()
+    if moved_intern_to_cpu:
+        # Move InternVideo2 back to GPU for next query.
+        intern_model.cuda()
+        _torch.cuda.empty_cache()
     intersection_time = time.time() - intersection_start
     retrieval_time = time.time() - query_start_time
     total_time = retrieval_time + float(query_split_time or 0.0)

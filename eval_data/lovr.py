@@ -1,150 +1,319 @@
-queries = [
-    "A man in black stands behind the counter and speaks while a woman in a light blue shirt holds a red phone and a man in a gray T-shirt leans forward to listen.",
-    "A young man in a pink hoodie speaks to a woman.",
-    "In a dim room, a woman with a shoulder bag enters and walks toward a man in a gray hoodie; he turns his head to acknowledge her, and they stop face-to-face for a serious conversation.",
-    "At a round-table political studio discussion, a woman in glasses and a brown blazer gestures while a man is speaking, and three men listen.",
-    "A woman at a table raises both hands while speaking, then the video switches to a four-window split screen where remote participants continue the discussion.",
-    "A boy in a green T-shirt stands by a whiteboard and explains with hand gestures; then another boy in a black hoodie talks and smiles, and a girl in a red hoodie talks with hand gestures.",
-    "In an informal office meeting, a standing manager holding a coffee cup gestures while presenting, one seated attendee raises both hands enthusiastically, and another in a pink hoodie listens attentively.",
-    "In a split-format talk show, two studio hosts at a desk with microphones speak and gesture, while two remote guests in separate windows watch, listen, and respond during the ongoing discussion.",
-]
+"""Original 8 queries followed by the 30 new queries."""
 
+queries = ['A man in black stands behind the counter and speaks while a woman in a light blue shirt holds a '
+ 'red phone and a man in a gray T-shirt leans forward to listen.',
+ 'A young man in a pink hoodie speaks to a woman.',
+ 'In a dim room, a woman with a shoulder bag enters and walks toward a man in a gray hoodie; he '
+ 'turns his head to acknowledge her, and they stop face-to-face for a serious conversation.',
+ 'At a round-table political studio discussion, a woman in glasses and a brown blazer gestures '
+ 'while a man is speaking, and three men listen.',
+ 'A woman at a table raises both hands while speaking, then the video switches to a four-window '
+ 'split screen where remote participants continue the discussion.',
+ 'A boy in a green T-shirt stands by a whiteboard and explains with hand gestures; then another '
+ 'boy in a black hoodie talks and smiles, and a girl in a red hoodie talks with hand gestures.',
+ 'In an informal office meeting, a standing manager holding a coffee cup gestures while '
+ 'presenting, one seated attendee raises both hands enthusiastically, and another in a pink hoodie '
+ 'listens attentively.',
+ 'In a split-format talk show, two studio hosts at a desk with microphones speak and gesture, '
+ 'while two remote guests in separate windows watch, listen, and respond during the ongoing '
+ 'discussion.',
+ 'A young man in a suit looks forward, then talks to another man in a suit.',
+ 'A woman holding a microphone stands in front of a wall covered with postcards and a world map as '
+ 'a picture appears beside her',
+ 'A man in a maroon shirt stands against a black background and speaks while making a pointing '
+ 'gesture with his right hand.',
+ 'A woman in a dark jacket and pearl necklace speaks to the camera in an office setting, with text '
+ 'overlays changing to identify her and the topic.',
+ 'A man in a yellow sweater with green alligator patterns sits in a red theater seat and talks '
+ 'while gesturing with his hands.',
+ 'A wooden cabin stands in a forest as a bearded man pats a man in a light green shirt in front of '
+ 'the house, then a woman in a blue jacket comes out and runs after the bearded man, and he turns '
+ 'around and talks to her.',
+ 'A person pours water into a container with ice and bottles, then gestures toward the setup while '
+ 'talking.',
+ 'A person gestures with their hands while speaking in a black and white indoor scene.',
+ 'A man looks down at a presentation slide showing the mathematics of Harris Detector with '
+ 'equations.',
+ 'A person wearing a cap speaks to the camera while walking through a street with buildings, then '
+ 'the video switches to a view of a statue on a building, then a street view',
+ 'A dog in an orange jumpsuit holds a wrench while standing in a dimly lit room with other '
+ 'animals, then the video switches to a close-up of a wolf in a white coat looking stern, then a '
+ 'yellow dog appears, then the yellow dog runs away, then a robot and a white rabbit face each '
+ 'other.',
+ 'A boxer in red shorts throws a series of punches at his opponent while the referee watches, then '
+ 'the video switches to a blurry view of the ring ropes.',
+ 'A man clenches his fist then the video switches to two men standing side by side, then a man in '
+ 'a black shirt looks around while the other talks to the camera.',
+ 'A man lies on his stomach on a video call, then turns the phone so another person lying beside '
+ 'him can see it.',
+ 'A man in a cap stands indoors between two smiling women, then the video switches to a man '
+ 'walking outdoors toward another man.',
+ 'A child draws on the floor, then moves a cardboard box away, then an adult walks into the room.',
+ 'A man holds a ball, then a mascot walks along a bowling lane, walks past a woman holding up a '
+ 'ball, and comes into the middle of a crowd.',
+ 'In a dimly lit room, an older man speaks with his hands raised, then scratches his forehead, and '
+ 'the video switches to a young woman with braided hair.',
+ 'A woman holds a pink flamingo float while standing outside, then the video switches to a man '
+ 'talking to the camera in the same outdoor setting.',
+ 'A man swims toward a boat, then reaches out to hand an object to someone on the boat.',
+ 'A man touches his nose, then points, then the video switches to a woman who touches her nose.',
+ 'Several maps appear one after another, then the video switches to a man in a red T-shirt '
+ 'talking, then two new people appear beside him.',
+ 'A man in a jacket talks to the camera, then the video switches to another man with an afro '
+ 'talking, and a photo of an island appears in the upper left.',
+ 'A man with a beard and hat stands behind two women in front of ivy, then the video switches to a '
+ 'solo portrait of a woman draped in fabric, then the video switches to three portraits side by '
+ 'side, then the video switches to a woman dancing.',
+ 'An American football player in a red uniform runs past the crowd, then the video switches to a '
+ 'static image of a band with text identifying the song and date.',
+ 'The video shows a news debate with multiple panelists at a studio desk, then the video switches '
+ 'a gray-haired man wearing a suit and tie.',
+ 'In an animated scene, a woman in pink jumps and celebrates in front of a building and hugs her '
+ 'parents, then the video switches to several soldiers training in the woods.',
+ 'An album cover appears, then the video switches to another album cover, then the video switches '
+ 'to a woman talking beside a stationary bike.',
+ 'The video starts with a view of a stone fountain and a wooden structure in a grassy field, then '
+ 'the video switches to beehives, then pans up to reveal a valley with a village, then switches to '
+ 'an aerial top-down view of a grassy area with stone walls.',
+ 'The video shows a painting with multiple figures in a landscape, then highlights color swatches '
+ "from the painting, then displays the painting's dimensions, then zooms in on a group of figures "
+ 'dancing, then zooms in on reclining figures.']
 
-ground_truth_segments = {
-    1: [
-        {
-            "video_id": "eugVGJkOjsI",
-            "frame_start": 28060,
-            "frame_end": 28181,
-        }
-    ],
-    2: [
-        {
-            "video_id": "RsoT9WImC8Q",
-            "frame_start": 12357,
-            "frame_end": 12417,
-        },
-        {
-            "video_id": "RsoT9WImC8Q",
-            "frame_start": 11933,
-            "frame_end": 11981,
-        },
-        {
-            "video_id": "RsoT9WImC8Q",
-            "frame_start": 12217,
-            "frame_end": 12281,
-        },
-        {
-            "video_id": "RsoT9WImC8Q",
-            "frame_start": 11933,
-            "frame_end": 12281,
-        },
-        {
-            "video_id": "RsoT9WImC8Q",
-            "frame_start": 38225,
-            "frame_end": 38280,
-        },
-        {
-            "video_id": "RsoT9WImC8Q",
-            "frame_start": 38426,
-            "frame_end": 38494,
-        },
-        {
-            "video_id": "RsoT9WImC8Q",
-            "frame_start": 38557,
-            "frame_end": 38673,
-        },
-        {
-            "video_id": "RsoT9WImC8Q",
-            "frame_start": 38674,
-            "frame_end": 38724,
-        }
-    ],
-    3: [
-        {
-            "video_id": "O3Hwh0uv8Mg",
-            "frame_start": 20894,
-            "frame_end": 21090,
-        }
-    ],
-    4: [
-        {
-            "video_id": "a_hkRXc_bYg",
-            "frame_start": 38796,
-            "frame_end": 39092,
-        },
-        {
-            "video_id": "a_hkRXc_bYg",
-            "frame_start": 35192,
-            "frame_end": 35289,
-        },
-        {
-            "video_id": "a_hkRXc_bYg",
-            "frame_start": 39201,
-            "frame_end": 39363,
-        }
-    ],
-    5: [
-        {
-            "video_id": "Y1YCvEip_ko",
-            "frame_start": 7554,
-            "frame_end": 7712,
-        }
-    ],
-    6: [
-        {
-            "video_id": "3yGI4JwZwP4",
-            "frame_start": 24207,
-            "frame_end": 24407,
-        },
-        {
-            "video_id": "3yGI4JwZwP4",
-            "frame_start": 24192,
-            "frame_end": 24605,
-        }
-    ],
-    7: [
-        {
-            "video_id": "ukoSPO0cycE",
-            "frame_start": 7346,
-            "frame_end": 7523,
-        }
-    ],
-    8: [
-        {
-            "video_id": "-PgbM2MhcYQ",
-            "frame_start": 72615,
-            "frame_end": 73725,
-        },
-        {
-            "video_id": "-PgbM2MhcYQ",
-            "frame_start": 73725,
-            "frame_end": 74318,
-        },
-        {
-            "video_id": "-PgbM2MhcYQ",
-            "frame_start": 2076,
-            "frame_end": 2420,
-        },
-        {
-            "video_id": "-PgbM2MhcYQ",
-            "frame_start": 2878,
-            "frame_end": 3122,
-        },
-        {
-            "video_id": "-PgbM2MhcYQ",
-            "frame_start": 6199,
-            "frame_end": 7494,
-        },
-        {
-            "video_id": "-PgbM2MhcYQ",
-            "frame_start": 11299,
-            "frame_end": 11465,
-        },
-        {
-            "video_id": "-PgbM2MhcYQ",
-            "frame_start": 13919,
-            "frame_end": 14457,
-        }
-    ],
-}
+ground_truth_scene_names = [['eugVGJkOjsI-Scene-073.mp4', 'eugVGJkOjsI-Scene-075.mp4'],
+ ['RsoT9WImC8Q-Scene-012.mp4', 'RsoT9WImC8Q-Scene-049.mp4'],
+ ['O3Hwh0uv8Mg-Scene-042.mp4'],
+ ['a_hkRXc_bYg-Scene-036.mp4'],
+ ['Y1YCvEip_ko-Scene-042.mp4'],
+ ['3yGI4JwZwP4-Scene-059.mp4'],
+ ['ukoSPO0cycE-Scene-018.mp4'],
+ ['-PgbM2MhcYQ-Scene-026.mp4'],
+ ['Uvzq-vDhVmA-Scene-052',
+  'Uvzq-vDhVmA-Scene-052',
+  'Uvzq-vDhVmA-Scene-053',
+  'Uvzq-vDhVmA-Scene-053'],
+ ['OAcbasjxljY-Scene-061',
+  'OAcbasjxljY-Scene-061',
+  'OAcbasjxljY-Scene-061',
+  'OAcbasjxljY-Scene-061',
+  '1pxrIj9Xyps-Scene-067',
+  '1pxrIj9Xyps-Scene-067',
+  '1pxrIj9Xyps-Scene-067',
+  '1pxrIj9Xyps-Scene-067',
+  '1pxrIj9Xyps-Scene-067',
+  '1pxrIj9Xyps-Scene-067',
+  'tP68QwVvAZk-Scene-045',
+  'tP68QwVvAZk-Scene-049',
+  '-eRimFrm6kQ-Scene-068',
+  'OAcbasjxljY-Scene-062'],
+ ['oqfW7xn215o-Scene-042',
+  'oqfW7xn215o-Scene-043',
+  'oqfW7xn215o-Scene-009',
+  'oqfW7xn215o-Scene-019',
+  'oqfW7xn215o-Scene-055',
+  'oqfW7xn215o-Scene-083'],
+ ['3-6FG5eaiiU-Scene-039',
+  '3-6FG5eaiiU-Scene-039',
+  '3-6FG5eaiiU-Scene-039',
+  '3-6FG5eaiiU-Scene-039',
+  '3-6FG5eaiiU-Scene-039',
+  '3-6FG5eaiiU-Scene-039',
+  '2b-Bh-Oz_c4-Scene-026',
+  '2b-Bh-Oz_c4-Scene-026',
+  '2b-Bh-Oz_c4-Scene-026',
+  '2b-Bh-Oz_c4-Scene-026',
+  '2b-Bh-Oz_c4-Scene-026',
+  '2b-Bh-Oz_c4-Scene-033',
+  '2b-Bh-Oz_c4-Scene-033',
+  '2b-Bh-Oz_c4-Scene-033',
+  '2b-Bh-Oz_c4-Scene-033'],
+ ['QHIKlu6bn2M-Scene-081', 'QHIKlu6bn2M-Scene-082', 'QHIKlu6bn2M-Scene-095'],
+ ['PFrV_3IsJ2Y-Scene-010'],
+ ['Ys_ENxeNctk-Scene-049'],
+ ['gY0yACShcnU-Scene-034',
+  'gY0yACShcnU-Scene-012',
+  'gY0yACShcnU-Scene-009',
+  'gY0yACShcnU-Scene-060'],
+ ['_qgKQGsuKeQ-Scene-049',
+  '_qgKQGsuKeQ-Scene-042',
+  '_qgKQGsuKeQ-Scene-048',
+  '_qgKQGsuKeQ-Scene-050',
+  '_qgKQGsuKeQ-Scene-051',
+  '_qgKQGsuKeQ-Scene-052',
+  '_qgKQGsuKeQ-Scene-053',
+  '_qgKQGsuKeQ-Scene-054',
+  '_qgKQGsuKeQ-Scene-055',
+  '_qgKQGsuKeQ-Scene-056',
+  '_qgKQGsuKeQ-Scene-057',
+  '_qgKQGsuKeQ-Scene-058',
+  '_qgKQGsuKeQ-Scene-064',
+  '_qgKQGsuKeQ-Scene-065'],
+ ['1ZGfUJML4Os-Scene-004'],
+ ['h5rdgtyx844-Scene-043'],
+ ['me0JeKA39WA-Scene-011'],
+ ['LVFvRNRTEd4-Scene-002'],
+ ['kYiC8lzpTyM-Scene-036'],
+ ['vS8eQ5nVrRQ-Scene-017'],
+ ['KjIRSbMJ8zY-Scene-080'],
+ ['D7pScyrGc2o-Scene-022'],
+ ['W_GEfMAGYso-Scene-049'],
+ ['1RFP_PZo2QU-Scene-007', '1RFP_PZo2QU-Scene-004'],
+ ['QQ2RaGIYqqE-Scene-042', 'QQ2RaGIYqqE-Scene-043'],
+ ['H4jA_SN4hgg-Scene-089'],
+ ['swiiVM64g6Y-Scene-006'],
+ ['H8z8glfqsm0-Scene-003'],
+ ['cuHgxPe3J7I-Scene-029'],
+ ['er1oRjH2iu8-Scene-012', 'er1oRjH2iu8-Scene-013'],
+ ['GdFMKGNFXaE-Scene-043', '571nruSayeo-Scene-092', 'GdFMKGNFXaE-Scene-066'],
+ ['sEiyR7-0FOA-Scene-031'],
+ ['o2F-N42Ufo4-Scene-067'],
+ ['zuBgQEGdhx4-Scene-089'],
+ ['LlqsCCa6y58-Scene-024']]
+
+video_ids = ['eugVGJkOjsI',
+ 'RsoT9WImC8Q',
+ 'O3Hwh0uv8Mg',
+ 'a_hkRXc_bYg',
+ 'Y1YCvEip_ko',
+ '3yGI4JwZwP4',
+ 'ukoSPO0cycE',
+ '-PgbM2MhcYQ',
+ 'Uvzq-vDhVmA',
+ ['OAcbasjxljY', '1pxrIj9Xyps', 'tP68QwVvAZk', '-eRimFrm6kQ'],
+ 'oqfW7xn215o',
+ ['3-6FG5eaiiU', '2b-Bh-Oz_c4'],
+ 'QHIKlu6bn2M',
+ 'PFrV_3IsJ2Y',
+ 'Ys_ENxeNctk',
+ 'gY0yACShcnU',
+ '_qgKQGsuKeQ',
+ '1ZGfUJML4Os',
+ 'h5rdgtyx844',
+ 'me0JeKA39WA',
+ 'LVFvRNRTEd4',
+ 'kYiC8lzpTyM',
+ 'vS8eQ5nVrRQ',
+ 'KjIRSbMJ8zY',
+ 'D7pScyrGc2o',
+ 'W_GEfMAGYso',
+ '1RFP_PZo2QU',
+ 'QQ2RaGIYqqE',
+ 'H4jA_SN4hgg',
+ 'swiiVM64g6Y',
+ 'H8z8glfqsm0',
+ 'cuHgxPe3J7I',
+ 'er1oRjH2iu8',
+ ['GdFMKGNFXaE', '571nruSayeo'],
+ 'sEiyR7-0FOA',
+ 'o2F-N42Ufo4',
+ 'zuBgQEGdhx4',
+ 'LlqsCCa6y58']
+
+ground_truth_segments = {1: [{'video_id': 'eugVGJkOjsI', 'frame_start': 28060, 'frame_end': 28181},
+     {'video_id': 'eugVGJkOjsI', 'frame_start': 27735, 'frame_end': 27893}],
+ 2: [{'video_id': 'RsoT9WImC8Q', 'frame_start': 12357, 'frame_end': 12417},
+     {'video_id': 'RsoT9WImC8Q', 'frame_start': 11933, 'frame_end': 11981},
+     {'video_id': 'RsoT9WImC8Q', 'frame_start': 12217, 'frame_end': 12281},
+     {'video_id': 'RsoT9WImC8Q', 'frame_start': 11933, 'frame_end': 12281},
+     {'video_id': 'RsoT9WImC8Q', 'frame_start': 38225, 'frame_end': 38280},
+     {'video_id': 'RsoT9WImC8Q', 'frame_start': 38426, 'frame_end': 38494},
+     {'video_id': 'RsoT9WImC8Q', 'frame_start': 38557, 'frame_end': 38673},
+     {'video_id': 'RsoT9WImC8Q', 'frame_start': 38674, 'frame_end': 38724}],
+ 3: [{'video_id': 'O3Hwh0uv8Mg', 'frame_start': 20894, 'frame_end': 21090}],
+ 4: [{'video_id': 'a_hkRXc_bYg', 'frame_start': 38796, 'frame_end': 39092},
+     {'video_id': 'a_hkRXc_bYg', 'frame_start': 35192, 'frame_end': 35289},
+     {'video_id': 'a_hkRXc_bYg', 'frame_start': 39201, 'frame_end': 39363}],
+ 5: [{'video_id': 'Y1YCvEip_ko', 'frame_start': 7554, 'frame_end': 7712}],
+ 6: [{'video_id': '3yGI4JwZwP4', 'frame_start': 24207, 'frame_end': 24407},
+     {'video_id': '3yGI4JwZwP4', 'frame_start': 24192, 'frame_end': 24605}],
+ 7: [{'video_id': 'ukoSPO0cycE', 'frame_start': 7346, 'frame_end': 7523}],
+ 8: [{'video_id': '-PgbM2MhcYQ', 'frame_start': 72615, 'frame_end': 73725},
+     {'video_id': '-PgbM2MhcYQ', 'frame_start': 73725, 'frame_end': 74318},
+     {'video_id': '-PgbM2MhcYQ', 'frame_start': 2076, 'frame_end': 2420},
+     {'video_id': '-PgbM2MhcYQ', 'frame_start': 2878, 'frame_end': 3122},
+     {'video_id': '-PgbM2MhcYQ', 'frame_start': 6199, 'frame_end': 7494},
+     {'video_id': '-PgbM2MhcYQ', 'frame_start': 11299, 'frame_end': 11465},
+     {'video_id': '-PgbM2MhcYQ', 'frame_start': 13919, 'frame_end': 14457}],
+ 9: [{'video_id': 'Uvzq-vDhVmA', 'frame_start': 28273, 'frame_end': 28644},
+     {'video_id': 'Uvzq-vDhVmA', 'frame_start': 28273, 'frame_end': 28384},
+     {'video_id': 'Uvzq-vDhVmA', 'frame_start': 28645, 'frame_end': 28906},
+     {'video_id': 'Uvzq-vDhVmA', 'frame_start': 28645, 'frame_end': 28769}],
+ 10: [{'video_id': 'OAcbasjxljY', 'frame_start': 24423, 'frame_end': 24494},
+      {'video_id': 'OAcbasjxljY', 'frame_start': 24042, 'frame_end': 24134},
+      {'video_id': 'OAcbasjxljY', 'frame_start': 24257, 'frame_end': 24315},
+      {'video_id': 'OAcbasjxljY', 'frame_start': 24610, 'frame_end': 24708},
+      {'video_id': '1pxrIj9Xyps', 'frame_start': 29435, 'frame_end': 29479},
+      {'video_id': '1pxrIj9Xyps', 'frame_start': 29480, 'frame_end': 29594},
+      {'video_id': '1pxrIj9Xyps', 'frame_start': 29595, 'frame_end': 29718},
+      {'video_id': '1pxrIj9Xyps', 'frame_start': 29435, 'frame_end': 29594},
+      {'video_id': '1pxrIj9Xyps', 'frame_start': 29480, 'frame_end': 29718},
+      {'video_id': '1pxrIj9Xyps', 'frame_start': 29435, 'frame_end': 29718},
+      {'video_id': 'tP68QwVvAZk', 'frame_start': 30389, 'frame_end': 30520},
+      {'video_id': 'tP68QwVvAZk', 'frame_start': 32815, 'frame_end': 32936},
+      {'video_id': '-eRimFrm6kQ', 'frame_start': 27510, 'frame_end': 27696},
+      {'video_id': 'OAcbasjxljY', 'frame_start': 24806, 'frame_end': 24986}],
+ 11: [{'video_id': 'oqfW7xn215o', 'frame_start': 12773, 'frame_end': 12825},
+      {'video_id': 'oqfW7xn215o', 'frame_start': 1449, 'frame_end': 1566},
+      {'video_id': 'oqfW7xn215o', 'frame_start': 5550, 'frame_end': 5623},
+      {'video_id': 'oqfW7xn215o', 'frame_start': 15578, 'frame_end': 15596},
+      {'video_id': 'oqfW7xn215o', 'frame_start': 20618, 'frame_end': 20723}],
+ 12: [{'video_id': '3-6FG5eaiiU', 'frame_start': 49160, 'frame_end': 50478},
+      {'video_id': '3-6FG5eaiiU', 'frame_start': 49160, 'frame_end': 49484},
+      {'video_id': '3-6FG5eaiiU', 'frame_start': 49160, 'frame_end': 49899},
+      {'video_id': '3-6FG5eaiiU', 'frame_start': 49268, 'frame_end': 49899},
+      {'video_id': '3-6FG5eaiiU', 'frame_start': 49490, 'frame_end': 49899},
+      {'video_id': '3-6FG5eaiiU', 'frame_start': 49490, 'frame_end': 50478},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 39287, 'frame_end': 39554},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 39287, 'frame_end': 40082},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 39287, 'frame_end': 41023},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 39287, 'frame_end': 41070},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 39351, 'frame_end': 40082},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 44822, 'frame_end': 44973},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 44911, 'frame_end': 45032},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 44911, 'frame_end': 46095},
+      {'video_id': '2b-Bh-Oz_c4', 'frame_start': 44822, 'frame_end': 46095}],
+ 13: [{'video_id': 'QHIKlu6bn2M', 'frame_start': 38487, 'frame_end': 38866},
+      {'video_id': 'QHIKlu6bn2M', 'frame_start': 43127, 'frame_end': 43290}],
+ 14: [{'video_id': 'PFrV_3IsJ2Y', 'frame_start': 6219, 'frame_end': 6532}],
+ 15: [{'video_id': 'Ys_ENxeNctk', 'frame_start': 21495, 'frame_end': 22034}],
+ 16: [{'video_id': 'gY0yACShcnU', 'frame_start': 12097, 'frame_end': 13069},
+      {'video_id': 'gY0yACShcnU', 'frame_start': 4933, 'frame_end': 4964},
+      {'video_id': 'gY0yACShcnU', 'frame_start': 3717, 'frame_end': 3859},
+      {'video_id': 'gY0yACShcnU', 'frame_start': 20008, 'frame_end': 20149}],
+ 17: [{'video_id': '_qgKQGsuKeQ', 'frame_start': 43038, 'frame_end': 43499},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 33308, 'frame_end': 35425},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 40109, 'frame_end': 43037},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 43500, 'frame_end': 43949},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 43950, 'frame_end': 44999},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 45000, 'frame_end': 45149},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 45150, 'frame_end': 45899},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 45900, 'frame_end': 46049},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 46050, 'frame_end': 47399},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 47400, 'frame_end': 49049},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 49050, 'frame_end': 49649},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 49650, 'frame_end': 50486},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 63300, 'frame_end': 64311},
+      {'video_id': '_qgKQGsuKeQ', 'frame_start': 64312, 'frame_end': 66777}],
+ 18: [{'video_id': '1ZGfUJML4Os', 'frame_start': 575, 'frame_end': 768}],
+ 19: [{'video_id': 'h5rdgtyx844', 'frame_start': 13174, 'frame_end': 13425}],
+ 20: [{'video_id': 'me0JeKA39WA', 'frame_start': 4492, 'frame_end': 4663}],
+ 21: [{'video_id': 'LVFvRNRTEd4', 'frame_start': 594, 'frame_end': 781}],
+ 22: [{'video_id': 'kYiC8lzpTyM', 'frame_start': 20457, 'frame_end': 20690}],
+ 23: [{'video_id': 'vS8eQ5nVrRQ', 'frame_start': 6590, 'frame_end': 6819}],
+ 24: [{'video_id': 'KjIRSbMJ8zY', 'frame_start': 36990, 'frame_end': 37949}],
+ 25: [{'video_id': 'D7pScyrGc2o', 'frame_start': 9820, 'frame_end': 9990}],
+ 26: [{'video_id': 'W_GEfMAGYso', 'frame_start': 16282, 'frame_end': 16491}],
+ 27: [{'video_id': '1RFP_PZo2QU', 'frame_start': 3640, 'frame_end': 4081},
+      {'video_id': '1RFP_PZo2QU', 'frame_start': 2161, 'frame_end': 2884}],
+ 28: [{'video_id': 'QQ2RaGIYqqE', 'frame_start': 27382, 'frame_end': 27791}],
+ 29: [{'video_id': 'H4jA_SN4hgg', 'frame_start': 30812, 'frame_end': 30969}],
+ 30: [{'video_id': 'swiiVM64g6Y', 'frame_start': 1377, 'frame_end': 1739}],
+ 31: [{'video_id': 'H8z8glfqsm0', 'frame_start': 1459, 'frame_end': 2322}],
+ 32: [{'video_id': 'cuHgxPe3J7I', 'frame_start': 22902, 'frame_end': 23411}],
+ 33: [{'video_id': 'er1oRjH2iu8', 'frame_start': 4570, 'frame_end': 4792}],
+ 34: [{'video_id': 'GdFMKGNFXaE', 'frame_start': 41326, 'frame_end': 41858},
+      {'video_id': '571nruSayeo', 'frame_start': 68021, 'frame_end': 68193},
+      {'video_id': 'GdFMKGNFXaE', 'frame_start': 58852, 'frame_end': 59073}],
+ 35: [{'video_id': 'sEiyR7-0FOA', 'frame_start': 22586, 'frame_end': 22878}],
+ 36: [{'video_id': 'o2F-N42Ufo4', 'frame_start': 27157, 'frame_end': 27415}],
+ 37: [{'video_id': 'zuBgQEGdhx4', 'frame_start': 31202, 'frame_end': 32111}],
+ 38: [{'video_id': 'LlqsCCa6y58', 'frame_start': 14446, 'frame_end': 15160}]}
