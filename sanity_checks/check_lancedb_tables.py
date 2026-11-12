@@ -30,7 +30,7 @@ def main():
 
     existing_tables = db.table_names()
 
-    target_tables = ["videos", "clips", "frames", "frame_clusters"]
+    target_tables = ["clips", "frame_cluster_reps"]
 
     for table_name in target_tables:
         print(f"================ Table: {table_name} ================")

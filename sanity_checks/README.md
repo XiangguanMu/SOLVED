@@ -2,7 +2,7 @@
 
 Lightweight scripts for verifying LanceDB table construction.
 
-- `check_lancedb_tables.py`: print schema, row counts, and sample rows for `videos` / `clips` / `frames` / `frame_clusters`
+- `check_lancedb_tables.py`: print schema, row counts, and sample rows for `clips` / `frame_cluster_reps`
 - `extract_video_clip.py`: extract a frame range from a source video to visually compare against stored clip metadata
 
 ```sh

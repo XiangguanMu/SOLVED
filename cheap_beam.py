@@ -137,140 +137,71 @@ def _logical_groups(atomic_items):
 def _fetch_scene_results(
     scenes,
     frame_cluster_reps_tbl,
-    frames_clusters_tbl,
-    frames_tbl,
     timing,
-    score_all_frames=False,
     load_images=True,
 ):
+    """Load cluster representatives. Images and ids both come from frame_cluster_reps."""
+
     def fetch_one(scene_name):
         scene_clean = scene_name.replace(".mp4", "")
         clip_expr = base._sql_literal(scene_clean)
-        if score_all_frames:
-            started = time.time()
-            columns = ["frame_id"] + (["frame_image"] if load_images else [])
-            try:
-                frames_df = (
-                    frames_tbl.search()
-                    .where(f"clip_id = {clip_expr}")
-                    .select(columns)
-                    .limit(2_000_000)
-                    .to_pandas()
-                )
-            except Exception as exc:
-                print(f"Warning: frames query failed for {scene_clean}: {exc}")
-                frames_df = pd.DataFrame()
-            elapsed = time.time() - started
-            if frames_df.empty or "frame_id" not in frames_df.columns:
-                return scene_name, None, None, 0.0, elapsed
-            frames_df = frames_df.drop_duplicates(subset=["frame_id"]).sort_values(
-                "frame_id"
-            )
-            frame_ids = frames_df["frame_id"].tolist()
-            image_map = (
-                dict(zip(frames_df["frame_id"], frames_df["frame_image"]))
-                if load_images
-                else {}
-            )
-            return scene_name, frame_ids, image_map, 0.0, elapsed
-        if not load_images:
-            id_table = frame_cluster_reps_tbl or frames_clusters_tbl
-            started = time.time()
-            try:
-                id_df = (
-                    id_table.search()
-                    .where(f"clip_id = {clip_expr}")
-                    .select(["cluster_frame_id"])
-                    .limit(2_000_000)
-                    .to_pandas()
-                )
-            except Exception as exc:
-                print(f"Warning: cluster id query failed for {scene_clean}: {exc}")
-                id_df = pd.DataFrame()
-            elapsed = time.time() - started
-            if id_df.empty or "cluster_frame_id" not in id_df.columns:
-                return scene_name, None, None, elapsed, 0.0
-            frame_ids = id_df["cluster_frame_id"].drop_duplicates().tolist()
-            return scene_name, frame_ids, {}, elapsed, 0.0
-        if frame_cluster_reps_tbl is not None:
-            started = time.time()
-            try:
-                reps_df = (
-                    frame_cluster_reps_tbl.search()
-                    .where(f"clip_id = {clip_expr}")
-                    .select(["cluster_frame_id", "frame_image"])
-                    .to_pandas()
-                )
-            except Exception as exc:
-                print(
-                    f"Warning: frame_cluster_reps query failed for "
-                    f"{scene_clean}: {exc}"
-                )
-                reps_df = pd.DataFrame()
-            elapsed = time.time() - started
-            if not reps_df.empty:
-                cluster_ids = reps_df["cluster_frame_id"].tolist()
-                image_map = dict(
-                    zip(reps_df["cluster_frame_id"], reps_df["frame_image"])
-                )
-                return scene_name, cluster_ids, image_map, elapsed, 0.0
-
+        if frame_cluster_reps_tbl is None:
+            print(f"Warning: frame_cluster_reps table is missing for {scene_clean}.")
+            return scene_name, None, None, None, 0.0, 0.0
         started = time.time()
+        columns = ["cluster_frame_id", "member_count"] + (
+            ["frame_image"] if load_images else []
+        )
         try:
-            cluster_df = (
-                frames_clusters_tbl.search()
+            reps_df = (
+                frame_cluster_reps_tbl.search()
                 .where(f"clip_id = {clip_expr}")
-                .select(["cluster_frame_id"])
+                .select(columns)
                 .to_pandas()
             )
-        except Exception:
-            cluster_df = (
-                frames_clusters_tbl.search()
-                .where(f"clip_id LIKE '{scene_clean}%'")
-                .to_pandas()
+        except Exception as exc:
+            print(
+                f"Warning: frame_cluster_reps query failed for {scene_clean}: {exc}"
             )
-        cluster_elapsed = time.time() - started
-        if cluster_df.empty or "cluster_frame_id" not in cluster_df.columns:
-            return scene_name, None, None, cluster_elapsed, 0.0
-        cluster_ids = (
-            cluster_df["cluster_frame_id"].drop_duplicates().sort_values().tolist()
+            reps_df = pd.DataFrame()
+        elapsed = time.time() - started
+        if reps_df.empty or "cluster_frame_id" not in reps_df.columns:
+            print(f"Warning: no frame_cluster_reps rows for {scene_clean}.")
+            return scene_name, None, None, None, elapsed, 0.0
+        cluster_ids = reps_df["cluster_frame_id"].tolist()
+        member_counts = dict(
+            zip(reps_df["cluster_frame_id"], reps_df["member_count"])
         )
-
-        started = time.time()
-        frames_df = (
-            frames_tbl.search()
-            .where(f"clip_id = {clip_expr}")
-            .select(["frame_id", "frame_image"])
-            .to_pandas()
+        image_map = (
+            dict(zip(reps_df["cluster_frame_id"], reps_df["frame_image"]))
+            if load_images
+            else {}
         )
-        frames_elapsed = time.time() - started
-        image_map = dict(zip(frames_df["frame_id"], frames_df["frame_image"]))
-        return (
-            scene_name,
-            cluster_ids,
-            image_map,
-            cluster_elapsed,
-            frames_elapsed,
-        )
+        return scene_name, cluster_ids, image_map, member_counts, elapsed, 0.0
 
     results = {}
     workers = min(4, os.cpu_count() or 4)
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {executor.submit(fetch_one, scene): scene for scene in scenes}
         for future in concurrent.futures.as_completed(futures):
-            scene_name, cluster_ids, image_map, cluster_time, frames_time = (
-                future.result()
-            )
+            (
+                scene_name,
+                cluster_ids,
+                image_map,
+                member_counts,
+                cluster_time,
+                frames_time,
+            ) = future.result()
             timing["cluster_query"] += cluster_time
             timing["frames_query"] += frames_time
             if cluster_ids and image_map is not None:
-                results[scene_name] = (cluster_ids, image_map)
+                results[scene_name] = (cluster_ids, image_map, member_counts or {})
     return results
 
 
 def _save_cluster_images(scene_results, directory, timing):
     paths = {}
-    for scene_name, (cluster_ids, image_map) in scene_results.items():
+    for scene_name, (cluster_ids, image_map, _member_counts) in scene_results.items():
         for cluster_id in cluster_ids:
             image_bytes = image_map.get(cluster_id)
             if not image_bytes:
@@ -303,7 +234,7 @@ def _score_group(
         for scene_name in scenes:
             if scene_name not in scene_results:
                 continue
-            cluster_ids, _ = scene_results[scene_name]
+            cluster_ids, _, _member_counts = scene_results[scene_name]
             for cluster_id in cluster_ids:
                 image_path = image_paths.get((scene_name, cluster_id))
                 prompt_keys.append((clause_index, scene_name, cluster_id))
@@ -534,15 +465,15 @@ def _select_tie_aware_videos(beams_by_scene, video_beam_width, eps=1e-9):
 def _build_scene_candidates(
     beams_by_scene,
     clause_count,
-    frames_clusters_tbl,
+    member_counts_by_scene,
     score_all_frames=False,
 ):
     scene_candidates = {}
     for scene_name, beam in beams_by_scene.items():
         bounds_map = {}
         if not score_all_frames:
-            bounds_map = base._load_cluster_frame_bounds(
-                frames_clusters_tbl, scene_name.replace(".mp4", "")
+            bounds_map = base._bounds_map_from_member_counts(
+                (member_counts_by_scene or {}).get(scene_name, {})
             )
         candidates = []
         for total_score, sequence, _sequence_scenes in beam:
@@ -572,7 +503,6 @@ def evaluate_and_rank_scenes_cheap(
     atomic_items,
     candidate_scenes,
     scene_subquery_results,
-    frames_tbl,
     qwen3_model_path,
     qwen3_bridge_script,
     qwen3_python,
@@ -630,25 +560,24 @@ def evaluate_and_rank_scenes_cheap(
     if not scenes:
         return None, timing
 
+    if score_all_frames:
+        print(
+            "score_all_frames reads the frames table, which query no longer uses. "
+            "Scoring requires frame_cluster_reps."
+        )
+        return None, timing
+
     table_names = db.table_names()
-    reps_table = (
-        db.open_table("frame_cluster_reps")
-        if "frame_cluster_reps" in table_names
-        else None
-    )
-    clusters_table = (
-        db.open_table("frame_clusters")
-        if "frame_clusters" in table_names
-        else frames_tbl
-    )
+    if "frame_cluster_reps" not in table_names:
+        print("frame_cluster_reps table is missing. Cannot score scenes.")
+        return None, timing
+    reps_table = db.open_table("frame_cluster_reps")
     use_encoder = text_embeddings is not None and score_backend != "vlm"
+    print("Using frame_cluster_reps for bridge inputs and segment bounds.")
     scene_results = _fetch_scene_results(
         scenes,
         reps_table,
-        clusters_table,
-        frames_tbl,
         timing,
-        score_all_frames=score_all_frames,
         load_images=not use_encoder,
     )
     scenes = [scene for scene in scenes if scene in scene_results]
@@ -752,7 +681,10 @@ def evaluate_and_rank_scenes_cheap(
     scene_candidates = _build_scene_candidates(
         beams_by_scene,
         len(valid_clauses),
-        clusters_table,
+        {
+            scene_name: counts
+            for scene_name, (_ids, _images, counts) in scene_results.items()
+        },
         score_all_frames=score_all_frames,
     )
     all_sequences = base._collect_and_print_top_sequences(

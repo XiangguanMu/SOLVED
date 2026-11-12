@@ -65,7 +65,6 @@ def test_specific_case():
     # 3. 连接数据库
     print("\n--- Connecting to DB ---")
     db, clips_tbl = setup_index(db_path, False, 1024, 256)
-    frames_tbl = db.open_table("frames")
 
     # 4. 执行宏观检索 (粗筛)
     print("\n--- Step 1: Macro Retrieval (InternVideo2) ---")
@@ -97,7 +96,6 @@ def test_specific_case():
         atomic_items,
         candidate_scenes,
         scene_subquery_best_t,
-        frames_tbl,
         fgclip_model,
         fgclip_tokenizer,
         top_k,

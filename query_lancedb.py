@@ -319,8 +319,6 @@ def main():
         if clips_tbl is None:
             return
 
-        frames_tbl = db.open_table("frames") if "frames" in db.table_names() else None
-
         gt_log_path = os.path.join(os.path.dirname(__file__), "logs/gt_scores.txt")
         if args.print_gt_scores:
             _init_gt_log(gt_log_path)
@@ -411,7 +409,6 @@ def main():
                     atomic_items,
                     intern_model,
                     clips_tbl,
-                    frames_tbl,
                     qwen3_model_path,
                     qwen3_bridge_script,
                     qwen3_python,
